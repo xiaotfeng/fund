@@ -130,7 +130,7 @@ def ShowDeatil(code_list,sdate='',edate='',key=''):
         print('{} ({})'.format(data['name'],data['code']))
         print_out = '★ 当前涨幅: '+data['expectGrowth']+'% ★'
         continuous_growth = ComputeGrowthValue['continuous_growth']
-        print_extent = '最近{}天连续累计涨幅: {}%'.format(continuous_growth['day'],continuous_growth['extent'])
+        print_extent = '最近{}天连续累计涨幅: {:.2f}%'.format(continuous_growth['day'],continuous_growth['extent'])
         
         if not key:
             if float(data['expectGrowth']) > 0:
@@ -154,7 +154,7 @@ def ShowDeatil(code_list,sdate='',edate='',key=''):
                 ComputeGrowthValue['min'],
                 ComputeGrowthValue['avarage_down'],         
                 ComputeGrowthValue['avarage'],
-                print_extent if continuous_growth['day'] > 1 else 'None'
+                print_extent if continuous_growth['day'] > 1 else ' '
             ))
             
             key_list = []
@@ -187,7 +187,9 @@ if __name__ == '__main__':
     '001218',
     '110020',
     '000008',
-    '320007'
+    '320007',
+    '160222',
+    '001594'
     ]
     code_list2 = [
     '005520',
