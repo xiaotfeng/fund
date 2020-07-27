@@ -75,7 +75,7 @@ def get_fund_data(code,per=10,sdate='',edate='',proxies=None):
 
 # 主程序
 if __name__ == "__main__":
-    data=get_fund_data('161725',per=49,sdate='2018-01-01',edate='2018-12-31')
+    data=get_fund_data('161725',per=49,sdate='2020-1-5',edate='2020-12-31')
     # 修改数据类型
     data['净值日期']=pd.to_datetime(data['净值日期'],format='%Y/%m/%d')
     data['单位净值']= data['单位净值'].astype(float)

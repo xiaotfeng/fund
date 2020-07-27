@@ -56,5 +56,5 @@ def printYellowRed(mess):
 if __name__ == '__main__':
     printGreen('printGreen:Gree Color Text')
     printRed('printRed:Red Color Text')
-    printYellow('')
+    printYellow('printRed:yellow Color Text')
     printYellowRed('printYellow:Yellow Color Text')
