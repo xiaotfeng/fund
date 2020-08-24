@@ -11,52 +11,68 @@ import color
 import argparse
 import time
 
+def XiongAPI(url,code='null'): #调用熊博士接口通用方法
+    if code != 'null':
+        params = {
+            'code':code
+        }
+        response = requests.get(url,params = params)
+    else:
+        response = requests.get(url)
+    res = response.text
+    result = json.loads(res)
+    if result['code'] != 200:
+        assert('接口调用异常\n'+url)
+    else:
+        return result
+        
 # 抓取单只基金
 def Fund(code):  
     url = 'https://api.doctorxiong.club/v1/fund/detail'
-    params = {
-        'code':code
-    }
-    response = requests.get(url, params = params)
-    res = response.text
-    result = json.loads(res)
-    return result
+    return XiongAPI(url,code=code)
     
 #抓取大盘
 def stock_board():  
     url = 'https://api.doctorxiong.club/v1/stock/board'
-    response = requests.get(url)
-    res = response.text
-    stock_board = json.loads(res)
-    if stock_board['code'] == 200:
-        Astock = stock_board['data'][0]
+    stock_board = XiongAPI(url)
+    Astock_list = stock_board['data']
+    for Astock in Astock_list:
+        code = Astock['code']
         name = Astock['name']
-        close = Astock['close']
-        price = Astock['price']
         changePercent = Astock['changePercent']
+        price = Astock['price']
+        priceChange = Astock['priceChange']
         date = Astock['date']
-        points = float(price)-float(close)
-        print('{}：{} 涨幅点数：{:.2f} 百分比：{}%\n'.format(
-            name,
-            price,
-            points,
-            changePercent
-        ))
-    else:
-        print('大盘请求接口异常')
-    # for stock in stock_board['data']:
-        # name = stock['name']
-        # close = stock['close']
-        # price = stock['price']
-        # changePercent = stock['changePercent']
-        # date = stock['date']
-        # points = float(price)-float(close)
-        # print('{}：{} 涨幅点数；{:.2f} 百分比：{}%'.format(
-            # name,
-            # price,
-            # points,
-            # changePercent
-        # ))
+        print('{name:<{name_len}}: {price:<8} 涨幅点数：{priceChange:<8} 百分比：{changePercent}%  {date}'.format(
+            name = name,
+            name_len = 8-len(name.encode('GBK'))+len(name),
+            price = price,
+            priceChange = priceChange,
+            
+            changePercent = changePercent,
+            date = date
+        ))            
+    print('**************')
+
+#抓取大盘板块
+def GetIndustry():
+    url = 'https://api.doctorxiong.club/v1/stock/industry/rank'
+    stock_industry = XiongAPI(url)
+    global up
+    global donw
+    up = 0
+    down = 0
+    industry_list = stock_industry['data']
+    for industry in industry_list:
+        name = industry['name']
+        changePercent = industry['changePercent']
+        if float(changePercent) > 0:
+            up += 1
+        else:
+            down += 1
+        print('{name:<{len}}\t百分比:{changePercent}%'.format(name=name,len=10-len(name.encode('GBK'))+len(name),changePercent=changePercent))
+    print('\n{}个板块中,上涨行业{}个,下跌行业{}个\n**************'.format(len(industry_list),up,down))
+    
  
 # 抓取网页
 def get_url(url, params=None, proxies=None):
@@ -168,8 +184,8 @@ def ShowDeatil(code_list,sdate,edate,key,sigle_code_num=''):
             assert('json return code error!')
         data = detail['data']
         ComputeGrowthValue = GrowthExtent(code,sdate,edate)
-        print('{} ({})'.format(data['name'],data['code']))
-        print_out = '★ 当前涨幅 ★:      '+data['expectGrowth']+'%'
+        print('{} ({})'.format(data['name'], data['code']))
+        print_out = '★ 当前涨幅 ★:      '+data['expectGrowth']+'%\n'
         continuous_growth = ComputeGrowthValue['continuous_growth']
         print_extent = '最近{}天连续累计涨幅: {:.2f}%'.format(continuous_growth['day'],continuous_growth['extent'])
         
@@ -196,6 +212,7 @@ def ShowDeatil(code_list,sdate,edate,key,sigle_code_num=''):
                 # print_extent if continuous_growth['day'] > 1 else ' '
             # ))
         else:
+            print('{} {}: {}'.format(data['type'], data['manager'], data['fundScale']))
             print(print_out)
             print(print_extent) if continuous_growth['day'] > 1 else ' '
             key_list = []
@@ -211,11 +228,12 @@ def ShowDeatil(code_list,sdate,edate,key,sigle_code_num=''):
                 if i == float(data['expectGrowth']):
                     i = '({})'.format(i)
                 result += '_{}%_'.format(i)
+            print('单位净值月涨幅：{}%'.format(str(data['lastMonthGrowth'])))                
             print('{}天内的横向比较:   {}'.format(args.time, result))
             
             WeekdayAvg = WeekdayAvgGrowth(code,args.time)
-            print('{}天内每天平均涨幅：一：{} 二：{} 三：{} 四：{} 五：{}'.format(args.time, WeekdayAvg['mon'],WeekdayAvg['tues'],WeekdayAvg['wed'],WeekdayAvg['thur'],WeekdayAvg['fri']))
-            
+            print('{}天内每天平均涨幅：一：{}% 二：{}% 三：{}% 四：{}% 五：{}%'.format(args.time, WeekdayAvg['mon'],WeekdayAvg['tues'],WeekdayAvg['wed'],WeekdayAvg['thur'],WeekdayAvg['fri']))
+
             extent = float(format(continuous_growth['extent'],'.2f'))
             avg_up = float(ComputeGrowthValue['avarage_up'].strip('%'))
             avg_down = float(ComputeGrowthValue['avarage_down'].strip('%'))
@@ -263,54 +281,38 @@ def WeekdayAvgGrowth(code,day):  # json为fund的json返回值
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='***参数列表***')
     parser.add_argument('-d', '--detail', action='store_true', default=False, dest='key', help='显示基金的涨幅详情')
-    parser.add_argument('-l', '--list', default='1', help='选择基金列表')
+    parser.add_argument('-l', '--list', default='3', help='选择基金列表')
     parser.add_argument('-t', '--time', default='100', help='统计历史天数内的基金涨幅')
     parser.add_argument('-s', '--sigle_code_num', help='单独的基金代码')
     args = parser.parse_args()
     
     time_obj = datetime.datetime.now()
     edate = "{}-{}-{}".format(time_obj.year,time_obj.month,time_obj.day) #当前日期
-    stock_board()
     sigle_code_num = args.sigle_code_num
     sdate = BeforeDay(args.time)
     key = args.key
-    code_list1 = [
-    '000834',
-    '000008',
-    '006308',
-    '003096',
-    '519005',
-    '519674',
-    '001630',
-    '161725',
-    '001071',
-    '320007',
-    '001616',
-    '002939',
-    ]
-    code_list2 = [
-    '000834',
-    '006274',
-    '008086',
-    '519193',
-    '320007',
-    '002939',
-    ]
-    code_list3 = [
-    '161005',
-    '000083',
-    ]
+    
+    code_list1 = ['320007','001838','001595','110026','003634','161720','005224','000008','001630','161725','161726','001616']
+    code_list2 = []
+    code_list3 = ['001616','002939','000977','519694','001218']
+    
     if args.list == '1':
         code_list = code_list1
     elif args.list == '2':
         code_list = code_list2
     elif args.list == '3':
         code_list = code_list3
+    elif args.list == '4':
+        if sigle_code_num:
+            code_list = []
+        else:
+            GetIndustry()
+            stock_board()
+            exit(0)
     else:
         assert('list code error')
-    
-    
-    try:    
+    try:
+        stock_board()
         ShowDeatil(code_list,sdate,edate,key,sigle_code_num)
     except KeyboardInterrupt:
         color.printYellow('\n已手动停止')
