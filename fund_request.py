@@ -13,6 +13,8 @@ import time
 
 
 def XiongAPI(url,code='null'): #调用熊博士接口通用方法
+    call = add_json()
+    write_json(json.dumps(call))
     if code != 'null':
         params = {
             'code':code
@@ -138,6 +140,16 @@ def get_fund_data(code,per=10,sdate='',edate='',proxies=None):
         data[col_name] = np_records[:,col]
     return data
     
+
+
+def GrowthExtent1(code, startDate, endDate):
+    url = 'https://api.doctorxiong.club/v1/fund/daily'
+    json_data = {"code":code,"startDate":startDate,"endDate":endDate}
+    res = requests.post(url, json=json_data)
+    result = res.text
+    data = result["data"]["netWorthData"]
+    return data
+    
 # 指定基金的涨跌幅
 def GrowthExtent(code,sdate,edate):
     data=get_fund_data(code,per=49,sdate=sdate,edate=edate)
@@ -227,7 +239,8 @@ def ShowDeatil(code_list,sdate,edate,key,sigle_code_num=''):
                 if i == float(data['expectGrowth']):
                     i = '({})'.format(i)
                 result += '_{}%_'.format(i)
-            print('单位净值月涨幅：{}%'.format(str(data['lastMonthGrowth'])))                
+            print('单位净值月涨幅：{}%'.format(str(data['lastMonthGrowth'])))
+            print('单位净值周涨幅：{}%'.format(str(data['lastWeekGrowth'])))
             print('{}天内的横向比较:   {}'.format(args.time, result))
             
             WeekdayAvg = WeekdayAvgGrowth(code,args.time)
@@ -283,6 +296,28 @@ def WeekdayAvgGrowth(code,day):  # json为fund的json返回值
             weeklist['fri'].append(i[2])
     weeklist_avg = {k: format(float(sum(v))/len(v), '.2f') for k,v in weeklist.items()}
     return weeklist_avg
+
+def add_json():
+    f = open("E:\\wgl\\fund\\num.json", 'r')
+    data = json.loads(f.read())
+    num = data["num"]
+    hour = datetime.datetime.now().strftime("%H")
+    if data["hour"] == hour:
+        num += 1
+    else:
+        data["hour"] = hour
+        num = 1
+    new_data = {"hour": hour,"num": num}
+    if 75 <= new_data['num'] < 100:
+        print("调用次数{}已接近上限(100次)".format(new_data["num"],new_data["hour"]))
+    f.close()
+    return new_data
+    
+def write_json(dict):
+    f = open("E:\\wgl\\fund\\num.json", 'w')
+    f.write(dict)
+    f.close()
+    
             
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='***参数列表***')
@@ -291,7 +326,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--time', default='60', help='统计历史天数内的基金涨幅')
     parser.add_argument('-s', '--sigle_code_num', help='单独的基金代码')
     args = parser.parse_args()
-    
+
     time_obj = datetime.datetime.now()
     edate = "{}-{}-{}".format(time_obj.year,time_obj.month,time_obj.day) #当前日期
     sigle_code_num = args.sigle_code_num
