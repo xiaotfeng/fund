@@ -13,8 +13,8 @@ import time
 
 
 def XiongAPI(url,code='null'): #调用熊博士接口通用方法
-    call = add_json()
-    write_json(json.dumps(call))
+    add_json()
+    #write_json(json.dumps(call))
     if code != 'null':
         params = {
             'code':code
@@ -298,6 +298,7 @@ def WeekdayAvgGrowth(code,day):  # json为fund的json返回值
     return weeklist_avg
 
 def add_json():
+    # 读取现有的值
     f = open("E:\\wgl\\fund\\num.json", 'r')
     data = json.loads(f.read())
     num = data["num"]
@@ -311,13 +312,13 @@ def add_json():
     if 75 <= new_data['num'] < 100:
         print("调用次数{}已接近上限(100次)".format(new_data["num"],new_data["hour"]))
     f.close()
-    return new_data
     
-def write_json(dict):
-    f = open("E:\\wgl\\fund\\num.json", 'w')
-    f.write(dict)
-    f.close()
-    
+    #写入文件
+    r = open("E:\\wgl\\fund\\num.json", 'w')
+    r.write(json.dumps(new_data))
+    r.close()
+    #print(new_data)
+
             
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='***参数列表***')
